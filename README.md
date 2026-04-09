@@ -1,9 +1,8 @@
 # Action Potential Analysis
 ### A self-guided computational neuroscience project
 
-This project was built without formal graduate training, using publicly available 
-data and open source tools. It was inspired by a stranger in a bar in Austin, Texas 
-who told me not to go to graduate school — and handed me 5 lines of instructions instead.
+This project was built using publicly available 
+data and open source tools.
 
 ---
 
@@ -50,6 +49,4 @@ of anesthetized rats. Contributed by Gyorgy Buzsáki lab, NYU. Via CRCNS.org.
 
 ---
 
-*This project is documented as part of Black Box Lab — a personal writing project 
-exploring whether graduate-level work in AI and neuroscience can be pursued 
-independently. Read the full article at [Black Box Lab on Substack].*
+*This project is documented as part of Black Box Lab. Read the full article at [Black Box Lab on Substack].*
