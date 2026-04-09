@@ -1,56 +1,61 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.signal import butter, filtfilt
 
-n_channels = 8
-sampling_rate = 10000
+# ---- Neuron Parameters ----
+dt = 0.0001          # time step (0.1 ms)
+T = 0.5              # total simulation time (500 ms)
+time = np.arange(0, T, dt)
 
-# Load data
-data = np.fromfile('d5331/d533101.dat', dtype=np.int16)
-data = data.reshape(-1, n_channels)
+V_rest = -70.0       # resting membrane potential (mV)
+V_threshold = -55.0  # firing threshold (mV)
+V_reset = -75.0      # reset potential after firing (mV)
+R = 10.0             # membrane resistance (MOhm)
+tau = 0.02           # membrane time constant (20 ms)
 
-# Look at first 3 seconds
-seconds = 3
-samples = seconds * sampling_rate
-snippet = data[:samples, 0]  # Channel 0 only
+# ---- Input Current ----
+# Simulating a constant input current to the neuron
+I_input = 2.0        # input current (nA)
 
-# Step 1 - Highpass filter to remove slow drifts and isolate spikes
-def highpass_filter(data, cutoff=300, fs=10000):
-    b, a = butter(4, cutoff / (fs/2), btype='high')
-    return filtfilt(b, a, data)
+# ---- Simulation ----
+V = V_rest           # start at resting potential
+voltage_trace = []   # record voltage over time
+spike_times = []     # record when spikes occur
 
-filtered = highpass_filter(snippet)
+for t in time:
+    # Integrate - accumulate input
+    dV = (dt / tau) * (-(V - V_rest) + R * I_input)
+    V += dV
+    
+    # Fire - if threshold crossed, reset
+    if V >= V_threshold:
+        spike_times.append(t)
+        V = V_reset
+    
+    voltage_trace.append(V)
 
-# Step 2 - Detect spikes by finding where signal crosses threshold
-threshold = -4 * np.std(filtered)  # 4 standard deviations below mean
-print("Spike threshold:", round(threshold, 2))
+print(f"Total spikes fired: {len(spike_times)}")
+print(f"Firing rate: {len(spike_times) / T:.1f} Hz")
 
-# Find spike locations
-spike_indices = np.where(filtered < threshold)[0]
+# ---- Plot ----
+fig, axes = plt.subplots(2, 1, figsize=(12, 7))
 
-# Remove duplicates (same spike detected multiple times)
-min_distance = 30  # samples (3ms refractory period)
-spikes = [spike_indices[0]]
-for idx in spike_indices[1:]:
-    if idx - spikes[-1] > min_distance:
-        spikes.append(idx)
+# Voltage trace
+axes[0].plot(time * 1000, voltage_trace, color='steelblue', linewidth=0.8)
+axes[0].axhline(V_threshold, color='red', linestyle='--', 
+                linewidth=1, label='Threshold (-55 mV)')
+axes[0].axhline(V_rest, color='gray', linestyle=':', 
+                linewidth=1, label='Resting potential (-70 mV)')
+axes[0].set_ylabel('Membrane Potential (mV)')
+axes[0].set_title('Integrate-and-Fire Neuron Simulation')
+axes[0].legend()
 
-spike_times = np.array(spikes) / sampling_rate
-print(f"Number of spikes detected: {len(spikes)}")
-print(f"Spike times (seconds): {spike_times[:10]}")
+# Spike raster
+axes[1].eventplot([s * 1000 for s in spike_times], 
+                  color='red', linewidths=1.5)
+axes[1].set_xlabel('Time (ms)')
+axes[1].set_ylabel('Spikes')
+axes[1].set_title(f'Spike Train — {len(spike_times)} spikes at {len(spike_times)/T:.1f} Hz')
 
-# Step 3 - Plot the filtered signal with spikes marked
-time = np.arange(samples) / sampling_rate
-
-plt.figure(figsize=(14, 5))
-plt.plot(time, filtered, linewidth=0.5, color='steelblue', label='Filtered signal')
-plt.axhline(threshold, color='red', linestyle='--', linewidth=1, label=f'Threshold')
-plt.plot(spike_times, filtered[(np.array(spikes))], 'v', 
-         color='red', markersize=8, label=f'{len(spikes)} spikes detected')
-plt.xlabel('Time (seconds)')
-plt.ylabel('Amplitude')
-plt.title('Spike Detection - CA1 Channel 0')
-plt.legend()
 plt.tight_layout()
-plt.savefig('spike_detection.png', dpi=150)
-print("Plot saved as spike_detection.png")
+plt.savefig('integrate_and_fire.png', dpi=150)
+print("Plot saved as integrate_and_fire.png")
